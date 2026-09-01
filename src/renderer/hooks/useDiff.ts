@@ -10,6 +10,10 @@ function isPunct(ch: string): boolean {
   return PUNCT.has(ch)
 }
 
+// 원고지 관례: 마침표·쉼표류 뒤의 띄어쓰기는 새 칸을 만들지 않고 바로 이어 쓴다.
+// (물음표·느낌표 뒤는 한 칸을 띄우는 관례라 제외한다.)
+const NO_SPACE_AFTER = new Set(['.', ',', '·', '。', '，', '、'])
+
 const dmp = new DiffMatchPatch.diff_match_patch()
 
 /**
@@ -74,6 +78,13 @@ export function buildGlyphs(original: string, corrected: string): Glyph[] {
     glyphs.push({ newline: true })
   }
 
+  const lastRealCell = (): Cell | null => {
+    for (let j = glyphs.length - 1; j >= 0; j--) {
+      if (!isNL(glyphs[j])) return glyphs[j] as Cell
+    }
+    return null
+  }
+
   // A run of inserted characters. Split on newlines; a segment that is only
   // whitespace becomes ∨ spacing marks, otherwise it's above-line insert text.
   const handleInsertionRun = (text: string): void => {
@@ -100,7 +111,9 @@ export function buildGlyphs(original: string, corrected: string): Glyph[] {
 
     if (cur.op === 0) {
       if (cur.ch === '\n') emitNewline()
-      else emitCell({ char: cur.ch, isPunct: isPunct(cur.ch), type: 'normal' })
+      else if (cur.ch === ' ' && NO_SPACE_AFTER.has(lastRealCell()?.char ?? '')) {
+        // 마침표·쉼표 뒤의 띄어쓰기는 칸을 만들지 않는다
+      } else emitCell({ char: cur.ch, isPunct: isPunct(cur.ch), type: 'normal' })
       i++
       continue
     }

@@ -71,6 +71,9 @@ function layout(glyphs: Glyph[]): { cells: LaidCell[]; rows: number } {
       r += 1
       c = 0
     }
+    // 원고지 관례: 줄이 넘어갈 때(문단 첫 줄의 들여쓰기 제외) 첫 칸을
+    // 띄어쓰기로 비우지 않는다. 줄 첫 칸에 오는 공백은 건너뛴다.
+    if (c === 0 && g.type === 'normal' && g.char === ' ') continue
     cells.push({ cell: g, r, c })
     c += 1
   }
